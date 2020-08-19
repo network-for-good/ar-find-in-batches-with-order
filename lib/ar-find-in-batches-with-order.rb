@@ -37,7 +37,11 @@ module ActiveRecord
           end
         end
 
-        without_dups = relation.where.not(relation.klass.primary_key => with_start_ids)
+        # after the first set of records, we want to remove the offset because the where clauses below control
+        # the starting point, not the offset. if we let the offset remain, records may be empty, because
+        # the offset exceeds the number of records that would be returned with the where clause.
+        without_offset = arel.offset.present? ? relation.offset(nil) : relation
+        without_dups = without_offset.where.not(relation.klass.primary_key => with_start_ids)
         records = (direction == :desc ? without_dups.where("#{sanitized_key} <= ?", start).to_a : without_dups.where("#{sanitized_key} >= ?", start).to_a)
       end
     end
